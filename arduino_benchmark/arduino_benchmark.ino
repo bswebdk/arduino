@@ -1,7 +1,7 @@
 /*
   
   Copyright © 2018 - Torben Bruchhaus
-  https://github.com/bswebdk/arduino/arduino_benchmark
+  TDuino.bruchhaus.dk - github.com/bswebdk/TDuino
   File: arduino_benchmark.ino
   
   This program is free software: you can redistribute it and/or modify
@@ -19,7 +19,28 @@
   
 */
 
-//Uncomment the following line to do additional benchmarks with interrupts disabled:
+// Notes:
+// ------
+// With a 16MHz processor the resolution of the timer is 4us and with 8MHz the
+// resolution is 8us. Considering the timer register is only 8 bit, this gives
+// an expected minimum rollover at (256*4) 1024. When interrupts are disabled
+// the rollover will not be handled and this means that testing without interrupts
+// is limited to a maximum of 1024us. From this value we must subtract the time it
+// takes to perform a single operation plus the overhead of the while loop and
+// this gives us an approximate maximum of 900us to do our benchmarks. Since
+// longer testing time yields better results (*), testing with interrupts disabled
+// does not yield good results. In fact I would consider the results from testing
+// without interrupts as being unreliable.
+//
+// (*) Floating point performance - especially division - will decrease as the
+// testing time increases whereas most other data types will not. This behaviour
+// is most likely caused by more interference from interrupts during longer tests.
+
+#define TEST_US_NOINTR 900
+#define TEST_US 100000 //100 millis
+
+//Uncomment the following line to do additional benchmarks with interrupts
+//disabled - read notes above first, though:
 //#define NO_INTERRUPTS
 
 enum DATATYPE  { DT_8BIT=0, DT_16BIT, DT_32BIT, DT_FLOAT };
@@ -30,59 +51,59 @@ const char* OPERATION_NAME[4] = { "Addition", "Subtraction", "Multiplication", "
 
 char cb[25];
 bool intr, by_operation = true;
-unsigned long start_us, end_us, count;
+unsigned long start_us, end_us, test_us, count;
 
 /*
 
 Arduino Nano results (various junk attached):
 
 [Addition]
- 8-bit  : 0.17 us
-16-bit  : 0.26 us
-32-bit  : 0.36 us
-Floats  : 6.78 us
+ 8-bit  : 0.15 us
+16-bit  : 0.20 us
+32-bit  : 0.32 us
+Floats  : 8.42 us
 
 [Subtraction]
  8-bit  : 0.14 us
 16-bit  : 0.20 us
-32-bit  : 0.33 us
-Floats  : 6.98 us
+32-bit  : 0.32 us
+Floats  : 8.34 us
 
 [Multiplication]
  8-bit  : 0.33 us
-16-bit  : 0.77 us
-32-bit  : 5.08 us
-Floats  : 8.61 us
+16-bit  : 0.76 us
+32-bit  : 5.05 us
+Floats  : 6.11 us
 
 [Division]
- 8-bit  : 5.26 us
-16-bit  : 12.69 us
-32-bit  : 38.35 us
-Floats  : 30.27 us
+ 8-bit  : 5.25 us
+16-bit  : 12.60 us
+32-bit  : 36.49 us
+Floats  : 71.53 us
 
 [ 8-bit]
 Addition        : 0.14 us
 Subtraction     : 0.14 us
 Multiplication  : 0.33 us
-Division        : 5.26 us
+Division        : 5.24 us
 
 [16-bit]
-Addition        : 0.20 us
+Addition        : 0.21 us
 Subtraction     : 0.20 us
 Multiplication  : 0.77 us
-Division        : 12.76 us
+Division        : 12.61 us
 
 [32-bit]
 Addition        : 0.33 us
 Subtraction     : 0.33 us
-Multiplication  : 5.08 us
-Division        : 38.35 us
+Multiplication  : 5.05 us
+Division        : 36.51 us
 
 [Floats]
-Addition        : 6.78 us
-Subtraction     : 6.98 us
-Multiplication  : 8.61 us
-Division        : 30.27 us
+Addition        : 8.44 us
+Subtraction     : 8.35 us
+Multiplication  : 6.11 us
+Division        : 71.57 us
 
 */
 
@@ -92,62 +113,68 @@ void estimate_while_us()
 
   //Estimate the time used by a while loop which increments a counter
   count = 0;
+  test_us = TEST_US;
   start_us = micros();
-  while (micros() - start_us < 1000) count++;
+  while (micros() - start_us < test_us) { count++; }
   end_us = micros();
   while_us = (float)(end_us - start_us) / (float)count;
 
   count = 0;
+  test_us = TEST_US_NOINTR;
   noInterrupts();
   start_us = micros();
-  while (micros() - start_us < 1000) count++;
+  while (micros() - start_us < test_us) { count++; }
   end_us = micros();
   interrupts();
   while_us_nointr = (float)(end_us - start_us) / (float)count;
 
-  /*Serial.print("while overhead  : ");
+  Serial.print("while overhead  : ");
   Serial.println(while_us);
-  Serial.print("while overhead*  : ");
+  Serial.print("while overhead* : ");
   Serial.println(while_us_nointr);
-  Serial.println();*/
 }
 
 template <class T> void benchmark(T a, T b, OPERATION operation, DATATYPE datatype)
 {
   
   count = 0;
-  if (!intr) noInterrupts();
+  test_us = TEST_US;
+  if (!intr)
+  {
+    test_us = TEST_US_NOINTR;
+    noInterrupts();
+  }
   
   switch (operation)
   {
     case OP_ADD:
       start_us = micros();
-      while (micros() - start_us < 1000) { a += b; count++; }
+      while (micros() - start_us < test_us) { a += b; count++; }
       end_us = micros();
       break;
       
     case OP_SUB:
       start_us = micros();
-      while (micros() - start_us < 1000) { a -= b; count++; }
+      while (micros() - start_us < test_us) { a -= b; count++; }
       end_us = micros();
       break;
       
     case OP_MUL:
       start_us = micros();
-      while (micros() - start_us < 1000) { a *= b; count++; }
+      while (micros() - start_us < test_us) { a *= b; count++; }
       end_us = micros();
       break;
       
     case OP_DIV:
       start_us = micros();
-      while (micros() - start_us < 1000) { a /= b; count++; }
+      while (micros() - start_us < test_us) { a /= b; count++; }
       end_us = micros();
       break;
   }
   
   if (!intr) interrupts();
   
-  if (a == b) Serial.println(); //Prevent results from being optimized away by the compiler
+  if (a == b) Serial.println(); //Prevent operations from being optimized away by the compiler
   
   byte i;
   cb[0] = 0;
@@ -165,7 +192,6 @@ template <class T> void benchmark(T a, T b, OPERATION operation, DATATYPE dataty
   while (strlen(cb) < i) strcat(cb, " ");
   strcat(cb, ": ");
     
-  //float score = ((float)ms / 10.0f) / (float)loop_size;
   float score = ((float)(end_us - start_us) / (float)count) - (intr ? while_us : while_us_nointr);
   Serial.print(cb);
   Serial.print(score);
@@ -317,3 +343,4 @@ void loop()
   }
   
 }
+
