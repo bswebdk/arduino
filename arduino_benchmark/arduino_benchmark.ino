@@ -65,62 +65,62 @@ unsigned long start_us, end_us, test_us, count;
 Arduino Nano results (various junk attached):
 
 [Addition]
- 8-bit  : 0.15 us
-16-bit  : 0.20 us
-32-bit  : 0.32 us
-64-bit  : 2.97 us
-Floats  : 8.42 us
+ 8-bit  : 0.13 us
+16-bit  : 0.19 us
+32-bit  : 0.31 us
+64-bit  : 2.96 us
+Floats  : 8.40 us
 
 [Subtraction]
- 8-bit  : 0.14 us
-16-bit  : 0.20 us
+ 8-bit  : 0.13 us
+16-bit  : 0.19 us
 32-bit  : 0.32 us
-64-bit  : 2.97 us
-Floats  : 8.34 us
+64-bit  : 2.96 us
+Floats  : 8.33 us
 
 [Multiplication]
- 8-bit  : 0.33 us
+ 8-bit  : 0.32 us
 16-bit  : 0.76 us
-32-bit  : 5.05 us
-64-bit  : 21.61 us
-Floats  : 6.11 us
+32-bit  : 5.03 us
+64-bit  : 21.57 us
+Floats  : 6.09 us
 
 [Division]
- 8-bit  : 5.25 us
-16-bit  : 12.60 us
-32-bit  : 36.48 us
-64-bit  : 18.59 us
-Floats  : 71.53 us
+ 8-bit  : 5.22 us
+16-bit  : 12.58 us
+32-bit  : 36.41 us
+64-bit  : 18.55 us
+Floats  : 71.44 us
 
 [ 8-bit]
-Addition        : 0.14 us
-Subtraction     : 0.14 us
-Multiplication  : 0.33 us
-Division        : 5.24 us
+Addition        : 0.13 us
+Subtraction     : 0.13 us
+Multiplication  : 0.32 us
+Division        : 5.22 us
 
 [16-bit]
-Addition        : 0.21 us
-Subtraction     : 0.20 us
-Multiplication  : 0.77 us
-Division        : 12.61 us
+Addition        : 0.19 us
+Subtraction     : 0.19 us
+Multiplication  : 0.76 us
+Division        : 12.58 us
 
 [32-bit]
-Addition        : 0.33 us
-Subtraction     : 0.33 us
-Multiplication  : 5.05 us
-Division        : 36.50 us
+Addition        : 0.32 us
+Subtraction     : 0.32 us
+Multiplication  : 5.03 us
+Division        : 36.42 us
 
 [64-bit]
-Addition        : 2.98 us
-Subtraction     : 2.97 us
-Multiplication  : 21.62 us
-Division        : 18.60 us
+Addition        : 2.96 us
+Subtraction     : 2.96 us
+Multiplication  : 21.57 us
+Division        : 18.55 us
 
 [Floats]
-Addition        : 8.44 us
-Subtraction     : 8.35 us
-Multiplication  : 6.11 us
-Division        : 71.57 us
+Addition        : 8.40 us
+Subtraction     : 8.33 us
+Multiplication  : 6.09 us
+Division        : 71.44 us
 
 */
 
@@ -149,6 +149,8 @@ void estimate_while_us()
   Serial.println(while_us);
   Serial.print("while overhead* : ");
   Serial.println(while_us_nointr);
+  
+  delay(100); //Wait for serial to complete
 }
 
 template <class T> void benchmark(T a, T b, OPERATION operation, DATATYPE datatype)
@@ -210,6 +212,7 @@ template <class T> void benchmark(T a, T b, OPERATION operation, DATATYPE dataty
   Serial.print(score);
   Serial.println(" us");
   
+  delay(100); //Wait for serial to complete
 }
 
 void print_header(const char* cs)
@@ -219,6 +222,8 @@ void print_header(const char* cs)
   Serial.print(cs);
   Serial.println("]");
   intr = true;
+  
+  delay(100); //Wait for serial to complete
 }
 
 void setup()
